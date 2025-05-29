@@ -11,11 +11,14 @@ def build_parser():
     hyperparam_args.add_argument("--lr", default=0.001, type=float)
     hyperparam_args.add_argument("--batch_size", default=64, type=int)
     hyperparam_args.add_argument("--epochs", default=20, type=int)
-
+    hyperparam_args.add_argument("--downscale", default=False, type=bool)
+    hyperparam_args.add_argument("--patch_size", default=300, type=int)
+    hyperparam_args.add_argument("--scale_r", default=0.4, type=float)
 
     data_args = parser.add_argument_group("data argument")
     data_args.add_argument("--train_data_input_path", default="./data/Train/", type=str)
     data_args.add_argument("--train_data_label_path", default="./data/TrainDotted", type=str)
+    data_args.add_argument("--train_misalign_data", default="MismatchedTrainImages.txt", type=str)
     data_args.add_argument("--test_data_path", default="test_X.csv", type=str)
     data_args.add_argument("--data_root_path", default="./data", type=str)
     data_args.add_argument("--shuffle_data", default=True, type=bool)
