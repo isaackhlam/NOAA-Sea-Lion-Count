@@ -22,7 +22,7 @@ def build_parser():
     data_args.add_argument("--test_data_path", default="test_X.csv", type=str)
     data_args.add_argument("--data_root_path", default="./data", type=str)
     data_args.add_argument("--shuffle_data", default=True, type=bool)
-    data_args.add_argument("--num_workers", default=4, type=int)
+    data_args.add_argument("--dataloader_num_workers", default=4, type=int)
 
     return parser
 

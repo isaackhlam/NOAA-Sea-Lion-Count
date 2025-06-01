@@ -1,3 +1,4 @@
+import torch
 from torch.utils.data import DataLoader, Dataset
 import cv2
 import numpy as np
@@ -89,6 +90,66 @@ class NewsDataset(Dataset):
 
         return np.array(X), np.array(Y)
 
+
+class SegmentationDataset(Dataset):
+    def __init__(self, args, img_size=(512, 512), dot_radius=5):
+        self.raw_img_dir = Path(args.train_data_input_path)
+        self.dot_img_dir = Path(args.train_data_label_path)
+        self.img_paths = sorted(list(self.raw_img_dir.glob("*.jpg")))
+        self.img_size = img_size
+        self.dot_radius = dot_radius
+
+        # Define colors and class names
+        self.cls_colors = [
+            [1., 0., 0.],        # red: adult males
+            [1., 0., 1.],        # magenta: subadult males
+            [0.647, 0.1647, 0.1647],  # brown: adult females
+            [0., 0., 1.],        # blue: juveniles
+            [0., 1., 0.],        # green: pups
+        ]
+        self.cls_names = ['male', 'sub_male', 'female', 'juv', 'pup']
+        self.cls_colors_bgr = [
+            (int(r * 255), int(g * 255), int(b * 255))
+            for r, g, b in self.cls_colors
+        ]
+        self.color_tol = 5  # tolerance for color matching
+
+    def __len__(self):
+        return len(self.img_paths)
+
+    def __getitem__(self, idx):
+        raw_path = self.img_paths[idx]
+        dot_path = self.dot_img_dir / raw_path.name
+
+        # Load images
+        image = cv2.imread(str(raw_path))
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        dot_img = cv2.imread(str(dot_path))
+
+        h, w = image.shape[:2]
+        mask = np.zeros((h, w), dtype=np.uint8)
+
+        # Parse dots by color
+        for cls_id, bgr_color in enumerate(self.cls_colors_bgr):
+            lower = np.array(bgr_color) - self.color_tol
+            upper = np.array(bgr_color) + self.color_tol
+            lower = np.clip(lower, 0, 255)
+            upper = np.clip(upper, 0, 255)
+
+            dot_mask = cv2.inRange(dot_img, lower, upper)
+            ys, xs = np.where(dot_mask > 0)
+            for x, y in zip(xs, ys):
+                cv2.circle(mask, (int(x), int(y)), self.dot_radius, int(cls_id + 1), -1)
+
+        # Resize image and mask
+        image = cv2.resize(image, self.img_size)
+        mask = cv2.resize(mask, self.img_size, interpolation=cv2.INTER_NEAREST)
+
+        # Convert to tensors
+        image = torch.from_numpy(image).permute(2, 0, 1).float() / 255.
+        mask = torch.from_numpy(mask).long()
+
+        return image, mask
 
 def build_dataloader(args, dataset):
 
